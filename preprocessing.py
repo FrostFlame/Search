@@ -1,18 +1,14 @@
+import re
 import string
 import uuid
 
 from nltk.corpus import stopwords
 from peewee import *
 from crawl import Article
-from nltk.stem.porter import *
+from porter import Stemmer
 from pymystem3 import Mystem
 
-articles = Article.select()
-punctuation = string.punctuation + "«»—•’"
-
 pg_db = PostgresqlDatabase('Articles', user='postgres', password='postgres', host='localhost', port=5432)
-porter = PorterStemmer()
-mystem = Mystem()
 
 
 class WordsPorter(Model):
@@ -35,32 +31,43 @@ class WordsMyStem(Model):
         db_table = 'words_mystem'
 
 
-WordsMyStem.create_table()
-WordsPorter.create_table()
+def main():
+    articles = Article.select()
+    punctuation = string.punctuation + "«»—•’"
 
-stop = stopwords.words('russian')
-for article in articles:
-    text = " ".join([article.title.lower(), article.content.lower(), article.keywords.lower()])
-    for p in punctuation:
-        text = text.replace(p, "")
-    text = text.replace("\\n", "")
-    text = re.sub(' +', ' ', text)
+    porter = Stemmer()
+    mystem = Mystem()
 
-    text = [word for word in text.split() if word not in stop]
-    text = " ".join(text)
+    WordsMyStem.create_table()
+    WordsPorter.create_table()
 
-    # Mystem
-    mystem_words = mystem.lemmatize(text)
+    stop = stopwords.words('russian')
+    for article in articles:
+        text = " ".join([article.title.lower(), article.content.lower(), article.keywords.lower()])
+        for p in punctuation:
+            text = text.replace(p, "")
+        text = text.replace("\\n", "")
+        text = re.sub(' +', ' ', text)
 
-    raw_words = text.split()
-    # Porter Stemmer
-    porter_words = [porter.stem(word) for word in raw_words]
+        text = [word for word in text.split() if word not in stop]
+        text = " ".join(text)
 
-    for word in porter_words:
-        data_porter = WordsPorter(id=uuid.uuid4(), term=word, article_id=article.id)
-        data_porter.save(force_insert=True)
+        # Mystem
+        mystem_words = mystem.lemmatize(text)
 
-    for word in mystem_words:
-        if word != ' ':
-            data_mystem = WordsMyStem(id=uuid.uuid4(), term=word, article_id=article.id)
-            data_mystem.save(force_insert=True)
+        raw_words = text.split()
+        # Porter Stemmer
+        porter_words = [porter.stem(word) for word in raw_words]
+
+        for word in porter_words:
+            data_porter = WordsPorter(id=uuid.uuid4(), term=word, article_id=article.id)
+            data_porter.save(force_insert=True)
+
+        for word in mystem_words:
+            if word != ' ':
+                data_mystem = WordsMyStem(id=uuid.uuid4(), term=word, article_id=article.id)
+                data_mystem.save(force_insert=True)
+
+
+if __name__ == '__main__':
+    main()
