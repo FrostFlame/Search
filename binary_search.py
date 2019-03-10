@@ -1,4 +1,5 @@
 import string
+import uuid
 from functools import reduce
 
 from nltk.corpus import stopwords
@@ -23,6 +24,7 @@ class TermList(Model):
 class ArticleTerm(Model):
     article_id = ForeignKeyField(Article, to_field='id', db_column='article_id')
     term_id = ForeignKeyField(TermList, to_field='term_id', db_column='term_id')
+    tf_idf = FloatField(db_column='tf-idf')
 
     class Meta:
         database = db
@@ -34,16 +36,16 @@ def create_tables():
     ArticleTerm.create_table()
 
     words = WordsPorter.select()
-    s = {}
+    set_of_pairs = set()
+    dic_of_words = {}
     for word in words:
-        if word.term not in s.keys():
-            s[word.term] = word.id
-            term_list = TermList(term_id=word.id, term_text=word.term)
-            term_list.save(force_insert=True)
-            article_term = ArticleTerm(article_id=word.article_id, term_id=word.id)
-            article_term.save(force_insert=True)
-        else:
-            article_term = ArticleTerm(article_id=word.article_id, term_id=s[word.term])
+        if (word.term, word.article_id) not in set_of_pairs:
+            set_of_pairs.add((word.term, word.article_id))
+            if word.term not in dic_of_words.keys():
+                dic_of_words[word.term] = uuid.uuid4()
+                term_list = TermList(term_id=dic_of_words[word.term], term_text=word.term)
+                term_list.save(force_insert=True)
+            article_term = ArticleTerm(article_id=word.article_id, term_id=dic_of_words[word.term])
             article_term.save(force_insert=True)
 
 
@@ -66,7 +68,6 @@ def binary_search(request):
     for word in words:
         words_dict[word] = ArticleTerm.select(ArticleTerm.article_id).join(TermList).distinct().where(
             TermList.term_text == word).count()
-    print(words_dict)
     for word in words:
         if words_dict[word] == 0:
             del words_dict[word]
@@ -91,4 +92,8 @@ def get_intersection(a, b):
 
 
 if __name__ == '__main__':
-    binary_search('Привет всем')
+    s = 'ведьмак от мира сериалов'
+    print(s)
+    binary_search(s)
+    # ArticleTerm.create_table()
+    # create_tables()
