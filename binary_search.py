@@ -28,6 +28,7 @@ class ArticleTerm(Model):
 
     class Meta:
         database = db
+        primary_key = CompositeKey('article_id', 'term_id')
         db_table = 'article_term'
 
 

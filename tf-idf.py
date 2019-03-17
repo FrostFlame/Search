@@ -1,6 +1,5 @@
 import math
 
-from peewee import *
 
 from binary_search import ArticleTerm
 from preprocessing import WordsPorter
