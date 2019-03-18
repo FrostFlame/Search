@@ -8,10 +8,7 @@ from preprocessing import WordsPorter
 def count_idf(word):
     word_id = TermList.select(TermList.term_id).where(TermList.term_text == word)
     x = ArticleTerm.select().where(ArticleTerm.term_id == word_id).count()
-    if x == 0:
-        idf = 0
-    else:
-        idf = math.log10(30 / x)
+    idf = math.log10((30 - x + 0.5) / (x + 0.5))
     return idf
 
 
