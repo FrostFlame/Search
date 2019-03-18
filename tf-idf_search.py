@@ -1,5 +1,4 @@
 import math
-from functools import reduce
 
 from binary_search import get_list_of_lexems, ArticleTerm, TermList
 from crawl import Article
